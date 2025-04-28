@@ -1,6 +1,7 @@
 <template>
   <div>
     <svg
+      ref="svgRef"
       :width="size"
       :height="size"
       viewBox="0 0 24 24"
@@ -24,7 +25,7 @@
 </template>
 
 <script setup>
-import { onMounted } from "vue";
+import { ref, onMounted } from "vue";
 
 const props = defineProps({
   strokes: {
@@ -43,12 +44,19 @@ const props = defineProps({
     type: Number,
     default: 1.5,
   },
+  animationDuration: {
+    type: Number,
+    default: 1.5,
+  },
 });
 
-let keyframesInjected = false;
+const svgRef = ref(null); // 🛠️ Ini buat scope querySelectorAll hanya di SVG ini
+
+const keyframesInjected = ref(false);
+const isAnimationStarted = ref(false);
 
 function injectKeyframesOnce() {
-  if (keyframesInjected) return;
+  if (keyframesInjected.value) return;
   const style = document.createElement("style");
   style.innerHTML = `
     @keyframes draw {
@@ -58,26 +66,58 @@ function injectKeyframesOnce() {
     }
   `;
   document.head.appendChild(style);
-  keyframesInjected = true;
+  keyframesInjected.value = true;
 }
 
 function getStrokeStyle(index) {
+  const delay = props.delayBetweenStrokes * index;
   return {
     strokeDasharray: 300,
     strokeDashoffset: 300,
-    animation: `draw 1.5s linear ${
-      index * props.delayBetweenStrokes
-    }s forwards`,
+    animation: "none", // initially no animation
   };
+}
+
+function applyAnimation() {
+  if (!svgRef.value) return;
+  const paths = svgRef.value.querySelectorAll(".stroke-path"); // cuma dalam SVG ini
+  paths.forEach((path, index) => {
+    path.style.animation = `draw ${props.animationDuration}s linear ${
+      index * props.delayBetweenStrokes
+    }s forwards`;
+  });
+}
+
+function resetAnimation() {
+  if (!svgRef.value) return;
+  const paths = svgRef.value.querySelectorAll(".stroke-path");
+  paths.forEach((path) => {
+    path.style.animation = "none";
+    path.style.strokeDashoffset = 300;
+  });
+}
+
+function restartAnimation() {
+  resetAnimation(); // Reset animasi terlebih dahulu
+  setTimeout(() => {
+    applyAnimation(); // Terapkan animasi setelah reset selesai
+  }, 0); // 0 ms delay untuk menjalankan applyAnimation di next event loop
 }
 
 onMounted(() => {
   injectKeyframesOnce();
+  applyAnimation(); // Optional: start animation when the component is mounted
+});
+
+defineExpose({
+  restartAnimation,
+  resetAnimation,
 });
 </script>
 
 <style scoped>
 .stroke-path {
-  /* Optional, fallback */
+  stroke-dasharray: 300;
+  stroke-dashoffset: 300;
 }
 </style>

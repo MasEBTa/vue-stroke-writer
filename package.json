@@ -1,7 +1,7 @@
 {
   "name": "vue-stroke-writer",
   "version": "0.0.1",
-  "main": "dist/vue-stroke-writer.umd.js", 
+  "main": "dist/vue-stroke-writer.umd.js",
   "module": "dist/vue-stroke-writer.es.js",
   "exports": {
     ".": {
@@ -16,6 +16,7 @@
     "vue": "^3.0.0"
   },
   "scripts": {
-    "build": "vite build"
+    "build": "vite build",
+    "dev": "vite"
   }
 }

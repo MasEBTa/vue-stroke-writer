@@ -12,7 +12,7 @@
         :key="index"
         :d="stroke"
         class="stroke-path"
-        :style="{ animationDelay: `${index * delayBetweenStrokes}s` }"
+        :style="getStrokeStyle(index)"
         :stroke="strokeColor"
         stroke-width="2"
         stroke-linecap="round"
@@ -24,7 +24,7 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { onMounted } from "vue";
 
 const props = defineProps({
   strokes: {
@@ -41,27 +41,43 @@ const props = defineProps({
   },
   delayBetweenStrokes: {
     type: Number,
-    default: 1.5, // detik
+    default: 1.5,
   },
+});
+
+let keyframesInjected = false;
+
+function injectKeyframesOnce() {
+  if (keyframesInjected) return;
+  const style = document.createElement("style");
+  style.innerHTML = `
+    @keyframes draw {
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+  keyframesInjected = true;
+}
+
+function getStrokeStyle(index) {
+  return {
+    strokeDasharray: 300,
+    strokeDashoffset: 300,
+    animation: `draw 1.5s linear ${
+      index * props.delayBetweenStrokes
+    }s forwards`,
+  };
+}
+
+onMounted(() => {
+  injectKeyframesOnce();
 });
 </script>
 
 <style scoped>
 .stroke-path {
-  stroke-dasharray: 300;
-  stroke-dashoffset: 300;
-  animation: draw 1.5s linear forwards;
+  /* Optional, fallback */
 }
-
-@keyframes draw {
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-/* .writer-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-} */
 </style>

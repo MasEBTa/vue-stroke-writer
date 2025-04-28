@@ -1,22 +1,22 @@
 <template>
   <div>
-    <!-- Tombol untuk animasi pertama -->
     <button @click="startAnimationHandler1">Start Animation 1</button>
     <StrokeWriter
       ref="writer1"
       :strokes="strokeData"
       :size="'4rem'"
       strokeColor="blue"
+      :delayBetweenStrokes="0.5"
       :animationDuration="1"
     />
 
-    <!-- Tombol untuk animasi kedua -->
     <button @click="startAnimationHandler2">Start Animation 2</button>
     <StrokeWriter
       ref="writer2"
       :strokes="strokeData"
       :size="'4rem'"
       strokeColor="red"
+      :delayBetweenStrokes="0.5"
       :animationDuration="1"
     />
   </div>
@@ -26,7 +26,6 @@
 import { ref } from "vue";
 import StrokeWriter from "./components/StrokeWriter.vue";
 
-// Data stroke untuk kedua komponen
 const strokeData = [
   "M7.53125 6 C9 6 13 5.5 15.5352 5",
   "M11.5306 3 C10.5 7 9.5 10.5 11.5306 19",
@@ -34,17 +33,14 @@ const strokeData = [
   "M15.3595 10.7008 C19.6125 10.1058 23.899 12.8624 14.8758 21",
 ];
 
-// Ref untuk masing-masing komponen StrokeWriter
 const writer1 = ref(null);
 const writer2 = ref(null);
 
-// Handler untuk memulai animasi pada writer pertama
 function startAnimationHandler1() {
-  writer1.value?.restartAnimation(); // Memanggil fungsi restartAnimation pada StrokeWriter pertama
+  writer1.value?.restartAnimation();
 }
 
-// Handler untuk memulai animasi pada writer kedua
 function startAnimationHandler2() {
-  writer2.value?.restartAnimation(); // Memanggil fungsi restartAnimation pada StrokeWriter kedua
+  writer2.value?.restartAnimation();
 }
 </script>

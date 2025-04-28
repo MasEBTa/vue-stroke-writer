@@ -1,6 +1,7 @@
 <template>
   <div>
     <svg
+      ref="svgRef"
       :width="size"
       :height="size"
       :viewBox="`0 0 ${viewBox} ${viewBox}`"
@@ -19,18 +20,26 @@
           stroke-linecap="round"
           stroke-linejoin="round"
           fill="none"
-          :style="{
-            animationDelay: `${index * delayBetweenStrokes}s`,
-            animationDuration: `${animationDuration}s`,
-          }"
+          :style="[
+            {
+              animationDelay: `${index * delayBetweenStrokes}s`,
+              animationDuration: `${animationDuration}s`,
+            },
+            'color: red',
+          ]"
         />
       </g>
     </svg>
   </div>
+  <!-- 
+    stroke-linejoin="round/bevel/miter/miter-clip"
+    stroke-linecap="round/square/butt" 
+    -->
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, computed, nextTick } from "vue";
+const svgRef = ref(null);
 
 const props = defineProps({
   strokes: {
@@ -49,6 +58,10 @@ const props = defineProps({
     type: [String, Number],
     default: 2,
   },
+  lineJoin: {
+    type: String,
+    default: "round",
+  },
   strokeColor: {
     type: String,
     default: "#000000",
@@ -59,9 +72,28 @@ const props = defineProps({
   },
   animationDuration: {
     type: Number,
-    default: 1.5,
+    default: 2,
+  },
+  autoStart: {
+    type: Boolean,
+    default: true,
   },
 });
+
+// Validasi lineJoin
+const validLineJoins = ["round", "bevel", "miter", "miter-clip"];
+const safeLineJoin = computed(() => {
+  return validLineJoins.includes(props.lineJoin) ? props.lineJoin : "round";
+});
+
+function resetAllAnimations() {
+  if (!svgRef.value) return;
+  const paths = svgRef.value.querySelectorAll(".stroke-path");
+  paths.forEach((path) => {
+    path.style.animation = "none"; // Hapus animasinya
+    path.offsetHeight; // Force reflow browser (wajib ini)
+  });
+}
 
 // ini kunci untuk force reload animasi
 const animationKey = ref(0);
@@ -69,8 +101,14 @@ const animationKey = ref(0);
 function restartAnimation() {
   animationKey.value++; // cukup increment ini
 }
-
+if (!props.autoStart) {
+  // kalau autoStart true, langsung restart animasi setelah render
+  nextTick(() => {
+    resetAllAnimations();
+  });
+}
 defineExpose({
+  resetAllAnimations,
   restartAnimation,
 });
 </script>

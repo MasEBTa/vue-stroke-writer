@@ -3,7 +3,7 @@
     <svg
       :width="size"
       :height="size"
-      viewBox="0 0 24 24"
+      :viewBox="`0 0 ${viewBox} ${viewBox}`"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
@@ -15,7 +15,7 @@
           :d="stroke"
           class="stroke-path"
           :stroke="strokeColor"
-          stroke-width="2"
+          :stroke-width="strokeWidth"
           stroke-linecap="round"
           stroke-linejoin="round"
           fill="none"
@@ -37,9 +37,17 @@ const props = defineProps({
     type: Array,
     required: true,
   },
+  viewBox: {
+    type: [String, Number],
+    default: 24,
+  },
   size: {
     type: [String, Number],
     default: 256,
+  },
+  strokeWidth: {
+    type: [String, Number],
+    default: 2,
   },
   strokeColor: {
     type: String,

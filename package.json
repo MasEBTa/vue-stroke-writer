@@ -1,18 +1,21 @@
 {
   "name": "vue-stroke-writer",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "version": "0.0.1",
+  "main": "dist/vue-stroke-writer.umd.js", 
+  "module": "dist/vue-stroke-writer.es.js",
+  "exports": {
+    ".": {
+      "import": "./dist/vue-stroke-writer.es.js",
+      "require": "./dist/vue-stroke-writer.umd.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "peerDependencies": {
+    "vue": "^3.0.0"
+  },
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "vue": "^3.5.13"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-vue": "^5.2.2",
-    "vite": "^6.3.1"
+    "build": "vite build"
   }
 }

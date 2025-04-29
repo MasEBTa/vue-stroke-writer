@@ -32,11 +32,16 @@
       :animationDuration="1"
     />
   </div>
+
+  <div>
+    <StrokeSvg :strokes="strokeData" strokeColor="black" strokeWidth="1" />
+  </div>
 </template>
 
 <script setup>
 import { ref } from "vue";
 import StrokeWriter from "./components/StrokeWriter.vue";
+import StrokeSvg from "./components/StrokeSvg.vue";
 
 const d = [
   "M18.85,6.41c.15,.21,.38,.33,.62,.33,.14,0,.29-.04,.42-.13,.34-.23,.43-.7,.2-1.04l-1.08-1.59c-.23-.34-.7-.43-1.04-.2-.34,.23-.43,.7-.2,1.04l1.08,1.59Z",

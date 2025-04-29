@@ -38,7 +38,6 @@
   </div>
 
   <div>
-    <h1>Latihan Menulis Hiragana: あ</h1>
     <Prsktik />
   </div>
 </template>

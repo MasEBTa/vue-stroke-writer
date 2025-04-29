@@ -1,17 +1,33 @@
 <template>
   <div style="position: relative; width: 300px; height: 300px">
     <!-- SVG Referensi -->
+    <!-- Penjelasan:
+    - Elemen <svg> digunakan untuk menampilkan bentuk stroke huruf asli (referensi).
+    - Atribut :d adalah path SVG yang digambar berdasarkan nilai currentStrokePath.
+    - Ukuran canvas adalah 300x300px, tapi skala internalnya 100x100 (viewBox).
+    - Warna stroke adalah abu-abu. -->
     <svg
       :width="size"
       :height="size"
       :viewBox="`0 0 ${viewBox} ${viewBox}`"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <path :d="currentStrokePath" stroke="#ccc" stroke-width="6" fill="none" />
+      <path
+        :d="currentStrokePath"
+        :stroke="strokeColor"
+        stroke-width="6"
+        fill="none"
+      />
     </svg>
 
     <!-- Canvas Gambar User -->
+    <!-- Penjelasan:
+     - Ini canvas tempat user menggambar dengan mouse.
+     - Event mouse digunakan untuk menggambar: mousedown mulai, mousemove menggambar, mouseup/mouseleave selesai.
+     - ref="userCanvas" membuat kita bisa akses canvas ini lewat JavaScript.
+     -jika showCanvas true maka dia akan muncul jika false dihilangkan -->
     <canvas
+      v-if="showCanvas"
       ref="userCanvas"
       :width="size"
       :height="size"
@@ -19,50 +35,88 @@
       @mousedown="startDraw"
       @mousemove="drawing"
       @mouseup="endDraw"
-      @mouseleave="endDraw"
     ></canvas>
 
     <!-- Canvas Offscreen (tidak terlihat) -->
+    <!-- Penjelasan:
+      - Ini canvas tersembunyi (offscreen) untuk menggambar stroke referensi.
+      - Nanti digunakan untuk ambil piksel stroke asli dan membandingkannya dengan gambar user. -->
     <canvas
       ref="referenceCanvas"
       :width="size"
       :height="size"
       style="display: none"
     ></canvas>
-
-    <button @click="validateStroke">Cek Jawaban</button>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from "vue";
+// Menggunakan Composition API dari Vue 3.
+// ref untuk state reactive, seperti canvas, path, drawingData, dll.
+import { ref } from "vue";
 
+// 📌 Variabel awal:
 const size = 300;
 const viewBox = 100;
 
+// Ukuran canvas dalam pixel dan skala viewBox SVG.
 const userCanvas = ref(null);
 const referenceCanvas = ref(null);
 
+// currentStrokePath = path SVG yang digunakan sebagai referensi.
 const currentStrokePath = ref("M10,10 C20,10 20,30 30,30"); // contoh stroke
+const strokeColor = ref("#ccc");
+const showCanvas = ref(true);
 
+// drawingData = array untuk menyimpan posisi mouse user (jejak gambar).
 const drawingData = ref([]);
+// isDrawing = boolean untuk tahu apakah user sedang menggambar atau tidak.
 let isDrawing = false;
 
+// 📌 Fungsi menggambar:
+// Dipanggil saat mousedown — mulai stroke baru.
 function startDraw(e) {
   isDrawing = true;
   drawingData.value = [[getMousePos(e)]];
 }
 
+// Dipanggil saat mousemove — menambahkan titik ke stroke terakhir.
 function drawing(e) {
   if (!isDrawing) return;
   drawingData.value[drawingData.value.length - 1].push(getMousePos(e));
+  // Memanggil drawUserPath() untuk gambar ulang canvas.
   drawUserPath();
 }
 
+// Dipanggil saat mouseup atau mouseleave — mengakhiri stroke. (@mouseleave tidak jadi digunakan)
 function endDraw() {
   isDrawing = false;
+  const hasil = istrueEnught(validateStroke());
+  if (hasil) {
+    strokeColor.value = "black"; // ubah warna stroke referensi
+    clearUserCanvas();
+    showCanvas.value = false; // sembunyikan canvas kalau benar
+  } else {
+    strokeColor.value = "#ccc";
+    clearUserCanvas();
+  }
+  console.log(hasil);
 }
 
+// mengecek apakah presentase kebenaran sudah cukup
+function istrueEnught(presesntase) {
+  return parseFloat(presesntase) >= 1;
+}
+
+// membersihkan canvas
+function clearUserCanvas() {
+  drawingData.value = [];
+  const ctx = userCanvas.value.getContext("2d");
+  ctx.clearRect(0, 0, size, size);
+}
+
+// 📌 Fungsi posisi:
+// Mengubah koordinat mouse (pixel) ke koordinat skala viewBox SVG.
 function getMousePos(e) {
   const rect = userCanvas.value.getBoundingClientRect();
   return {
@@ -71,6 +125,8 @@ function getMousePos(e) {
   };
 }
 
+// 📌 Menggambar ulang stroke user:
+// Menggambar semua stroke user berdasarkan data yang terkumpul.
 function drawUserPath() {
   const ctx = userCanvas.value.getContext("2d");
   ctx.clearRect(0, 0, size, size);
@@ -89,6 +145,8 @@ function drawUserPath() {
   }
 }
 
+// 📌 Menggambar stroke referensi (offscreen canvas):
+// Menggambar stroke referensi agar bisa dibaca pikselnya.
 function drawReferencePath() {
   const ctx = referenceCanvas.value.getContext("2d");
   ctx.clearRect(0, 0, size, size);
@@ -99,6 +157,13 @@ function drawReferencePath() {
   ctx.stroke(path);
 }
 
+// 📌 Fungsi Validasi:
+
+/*
+Ambil piksel dari kedua canvas.
+Cek berapa banyak piksel user yang tumpang tindih dengan stroke referensi.
+Tampilkan presentase kecocokan (kemiripan bentuk).
+*/
 function validateStroke() {
   drawReferencePath();
 
@@ -123,6 +188,9 @@ function validateStroke() {
 
   const matchRatio = overlap / userCount;
 
-  alert(`Tingkat kecocokan: ${(matchRatio * 100).toFixed(1)}%`);
+  const tingkatKecocokan = (matchRatio * 100).toFixed(1);
+
+  return tingkatKecocokan;
+  // alert(`Tingkat kecocokan: ${(matchRatio * 100).toFixed(1)}%`);
 }
 </script>

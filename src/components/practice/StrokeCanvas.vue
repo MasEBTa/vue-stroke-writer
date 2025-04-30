@@ -1,196 +1,142 @@
+<!-- ./strokeCanvas.vue -->
 <template>
-  <div style="position: relative; width: 300px; height: 300px">
-    <!-- SVG Referensi -->
-    <!-- Penjelasan:
-    - Elemen <svg> digunakan untuk menampilkan bentuk stroke huruf asli (referensi).
-    - Atribut :d adalah path SVG yang digambar berdasarkan nilai currentStrokePath.
-    - Ukuran canvas adalah 300x300px, tapi skala internalnya 100x100 (viewBox).
-    - Warna stroke adalah abu-abu. -->
-    <svg
-      :width="size"
-      :height="size"
-      :viewBox="`0 0 ${viewBox} ${viewBox}`"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        :d="currentStrokePath"
-        :stroke="strokeColor"
-        stroke-width="6"
-        fill="none"
-      />
-    </svg>
-
-    <!-- Canvas Gambar User -->
-    <!-- Penjelasan:
-     - Ini canvas tempat user menggambar dengan mouse.
-     - Event mouse digunakan untuk menggambar: mousedown mulai, mousemove menggambar, mouseup/mouseleave selesai.
-     - ref="userCanvas" membuat kita bisa akses canvas ini lewat JavaScript.
-     -jika showCanvas true maka dia akan muncul jika false dihilangkan -->
-    <canvas
-      v-if="showCanvas"
-      ref="userCanvas"
-      :width="size"
-      :height="size"
-      style="position: absolute; top: 0; left: 0; border: 1px solid #ddd"
-      @mousedown="startDraw"
-      @mousemove="drawing"
-      @mouseup="endDraw"
-    ></canvas>
-
-    <!-- Canvas Offscreen (tidak terlihat) -->
-    <!-- Penjelasan:
-      - Ini canvas tersembunyi (offscreen) untuk menggambar stroke referensi.
-      - Nanti digunakan untuk ambil piksel stroke asli dan membandingkannya dengan gambar user. -->
-    <canvas
-      ref="referenceCanvas"
-      :width="size"
-      :height="size"
-      style="display: none"
-    ></canvas>
-  </div>
+  <!-- 
+ * <canvas> adalah elemen HTML tempat user bisa menggambar.
+ * ref="canvasRef": agar kita bisa akses elemen ini dari JavaScript (canvasRef.value).
+ * :width dan :height: ukuran kanvas disesuaikan dengan properti size (default 256).
+ * Event listener:
+ * mousedown: mulai menggambar (startDraw)
+ * mousemove: menggambar saat mouse bergerak (draw)
+ * mouseup & mouseleave: selesai menggambar (endDraw)
+ * style="...": posisinya diatur absolut agar menumpuk dengan stroke referensi (SVG).
+-->
+  <canvas
+    ref="canvasRef"
+    :width="size"
+    :height="size"
+    @mousedown="startDraw"
+    @mousemove="draw"
+    @mouseup="endDraw"
+    @mouseleave="endDraw"
+    style="position: absolute; top: 0; left: 0; border: 1px solid #ccc"
+  ></canvas>
 </template>
 
 <script setup>
-// Menggunakan Composition API dari Vue 3.
-// ref untuk state reactive, seperti canvas, path, drawingData, dll.
-import { ref } from "vue";
+// ref, onMounted: Composition API dari Vue.
+import { ref, onMounted } from "vue";
 
-// 📌 Variabel awal:
-const size = 300;
-const viewBox = 100;
+/** inisiasi
+ * defineProps: menerima properti dari komponen induk:
+ * - size: ukuran kanvas (default 256).
+ * - onFinish: fungsi callback yang dipanggil saat user selesai menggambar.
+ */
+const props = defineProps({
+  size: { type: Number, default: 256 },
+  onFinish: Function,
+});
 
-// Ukuran canvas dalam pixel dan skala viewBox SVG.
-const userCanvas = ref(null);
-const referenceCanvas = ref(null);
-
-// currentStrokePath = path SVG yang digunakan sebagai referensi.
-const currentStrokePath = ref("M10,10 C20,10 20,30 30,30"); // contoh stroke
-const strokeColor = ref("#ccc");
-const showCanvas = ref(true);
-
-// drawingData = array untuk menyimpan posisi mouse user (jejak gambar).
-const drawingData = ref([]);
-// isDrawing = boolean untuk tahu apakah user sedang menggambar atau tidak.
+/** variable global
+ * canvasRef: referensi ke elemen <canvas>.
+ * ctx: 2D rendering context (untuk menggambar di canvas).
+ * isDrawing: status apakah user sedang menggambar.
+ * path: array titik koordinat hasil gambar user.
+ */
+const canvasRef = ref(null);
+let ctx = null;
 let isDrawing = false;
+let path = [];
 
-// 📌 Fungsi menggambar:
-// Dipanggil saat mousedown — mulai stroke baru.
+/** Setup Saat Mount
+ * Dijalankan saat komponen dimuat.
+ * Inisialisasi ctx (konteks menggambar canvas).
+ * lineWidth, lineCap, strokeStyle: mengatur tampilan garis saat menggambar.
+ */
+onMounted(() => {
+  ctx = canvasRef.value.getContext("2d", { willReadFrequently: true });
+  ctx.lineWidth = 6;
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "black";
+});
+
+/**
+ * Event Menggambar: startDraw(e)
+ * @param e
+ * Dipanggil saat mouse diklik.
+ * Set isDrawing = true dan simpan posisi pertama mouse ke path.
+ */
 function startDraw(e) {
   isDrawing = true;
-  drawingData.value = [[getMousePos(e)]];
+  path = [getMousePos(e)];
 }
 
-// Dipanggil saat mousemove — menambahkan titik ke stroke terakhir.
-function drawing(e) {
+/**
+ * Event Menggambar: draw(e)
+ * @param e
+ * Dipanggil saat mouse bergerak.
+ * Jika isDrawing aktif, tambahkan titik baru ke path dan gambar ulang jalur.
+ */
+function draw(e) {
   if (!isDrawing) return;
-  drawingData.value[drawingData.value.length - 1].push(getMousePos(e));
-  // Memanggil drawUserPath() untuk gambar ulang canvas.
-  drawUserPath();
+  const pos = getMousePos(e);
+  path.push(pos);
+  redraw();
 }
 
-// Dipanggil saat mouseup atau mouseleave — mengakhiri stroke. (@mouseleave tidak jadi digunakan)
+/**
+ * Event Menggambar: endDraw()
+ * Dipanggil saat mouse dilepas atau keluar dari kanvas.
+ * Menghentikan proses gambar.
+ * Jalankan onFinish(path) untuk mengirim path ke induk (untuk dinilai).
+ */
 function endDraw() {
+  if (!isDrawing) return;
   isDrawing = false;
-  const hasil = istrueEnught(validateStroke());
-  if (hasil) {
-    strokeColor.value = "black"; // ubah warna stroke referensi
-    clearUserCanvas();
-    showCanvas.value = false; // sembunyikan canvas kalau benar
-  } else {
-    strokeColor.value = "#ccc";
-    clearUserCanvas();
+  redraw();
+  if (props.onFinish) props.onFinish(path);
+}
+
+/**
+ * Fungsi Bantu: redraw()
+ * Membersihkan canvas lalu menggambar ulang seluruh path.
+ * Digunakan setiap kali ada titik baru ditambahkan.
+ */
+function redraw() {
+  ctx.clearRect(0, 0, props.size, props.size);
+  ctx.beginPath();
+  for (let i = 0; i < path.length; i++) {
+    const pt = path[i];
+    if (i === 0) ctx.moveTo(pt.x, pt.y);
+    else ctx.lineTo(pt.x, pt.y);
   }
-  console.log(hasil);
+  ctx.stroke();
 }
 
-// mengecek apakah presentase kebenaran sudah cukup
-function istrueEnught(presesntase) {
-  return parseFloat(presesntase) >= 1;
-}
-
-// membersihkan canvas
-function clearUserCanvas() {
-  drawingData.value = [];
-  const ctx = userCanvas.value.getContext("2d");
-  ctx.clearRect(0, 0, size, size);
-}
-
-// 📌 Fungsi posisi:
-// Mengubah koordinat mouse (pixel) ke koordinat skala viewBox SVG.
+/**
+ * Fungsi Bantu: getMousePos(e)
+ * @param e
+ * Konversi koordinat mouse dari layar ke posisi relatif di canvas.
+ */
 function getMousePos(e) {
-  const rect = userCanvas.value.getBoundingClientRect();
+  const rect = canvasRef.value.getBoundingClientRect();
   return {
-    x: ((e.clientX - rect.left) / rect.width) * viewBox,
-    y: ((e.clientY - rect.top) / rect.height) * viewBox,
+    x: e.clientX - rect.left,
+    y: e.clientY - rect.top,
   };
 }
 
-// 📌 Menggambar ulang stroke user:
-// Menggambar semua stroke user berdasarkan data yang terkumpul.
-function drawUserPath() {
-  const ctx = userCanvas.value.getContext("2d");
-  ctx.clearRect(0, 0, size, size);
-  ctx.strokeStyle = "black";
-  ctx.lineWidth = 12;
-  ctx.lineCap = "round";
-
-  for (const stroke of drawingData.value) {
-    ctx.beginPath();
-    for (let i = 0; i < stroke.length; i++) {
-      const pt = stroke[i];
-      if (i === 0) ctx.moveTo(pt.x * (size / viewBox), pt.y * (size / viewBox));
-      else ctx.lineTo(pt.x * (size / viewBox), pt.y * (size / viewBox));
-    }
-    ctx.stroke();
-  }
+/**
+ * Fungsi Bantu: clearCanvas()
+ * Menghapus isi kanvas dan reset path pengguna.
+ * Dipanggil ketika stroke salah atau berpindah ke stroke berikutnya.
+ */
+function clearCanvas() {
+  ctx.clearRect(0, 0, props.size, props.size);
+  path = [];
 }
 
-// 📌 Menggambar stroke referensi (offscreen canvas):
-// Menggambar stroke referensi agar bisa dibaca pikselnya.
-function drawReferencePath() {
-  const ctx = referenceCanvas.value.getContext("2d");
-  ctx.clearRect(0, 0, size, size);
-
-  const path = new Path2D(currentStrokePath.value);
-  ctx.strokeStyle = "red";
-  ctx.lineWidth = 6;
-  ctx.stroke(path);
-}
-
-// 📌 Fungsi Validasi:
-
-/*
-Ambil piksel dari kedua canvas.
-Cek berapa banyak piksel user yang tumpang tindih dengan stroke referensi.
-Tampilkan presentase kecocokan (kemiripan bentuk).
-*/
-function validateStroke() {
-  drawReferencePath();
-
-  const refCtx = referenceCanvas.value.getContext("2d");
-  const userCtx = userCanvas.value.getContext("2d");
-
-  const refPixels = refCtx.getImageData(0, 0, size, size).data;
-  const userPixels = userCtx.getImageData(0, 0, size, size).data;
-
-  let overlap = 0;
-  let userCount = 0;
-
-  for (let i = 0; i < refPixels.length; i += 4) {
-    const userAlpha = userPixels[i + 3];
-    const refAlpha = refPixels[i + 3];
-
-    if (userAlpha > 0) {
-      userCount++;
-      if (refAlpha > 0) overlap++;
-    }
-  }
-
-  const matchRatio = overlap / userCount;
-
-  const tingkatKecocokan = (matchRatio * 100).toFixed(1);
-
-  return tingkatKecocokan;
-  // alert(`Tingkat kecocokan: ${(matchRatio * 100).toFixed(1)}%`);
-}
+/** Ekspos Fungsi ke Luar
+ * Memungkinkan komponen induk (yang pakai <StrokeCanvas />) untuk memanggil clearCanvas().
+ */
+defineExpose({ clearCanvas });
 </script>

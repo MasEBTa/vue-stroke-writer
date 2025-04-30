@@ -11,7 +11,7 @@
     >
       <g>
         <path
-          v-for="(stroke, index) in strokes"
+          v-for="(stroke, index) in strokesData"
           :key="index"
           :d="stroke"
           :stroke="strokeColor"
@@ -31,7 +31,7 @@ import { ref, computed } from "vue";
 const svgRef = ref(null);
 
 const props = defineProps({
-  strokes: {
+  strokesData: {
     type: Array,
     required: true,
   },

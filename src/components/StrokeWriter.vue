@@ -11,7 +11,7 @@
       <g :key="animationKey">
         <!-- PERUBAHANNYA DI SINI -->
         <path
-          v-for="(stroke, index) in strokes"
+          v-for="(stroke, index) in strokesData"
           :key="index"
           :d="stroke"
           class="stroke-path"
@@ -42,7 +42,7 @@ import { ref, computed, nextTick } from "vue";
 const svgRef = ref(null);
 
 const props = defineProps({
-  strokes: {
+  strokesData: {
     type: Array,
     required: true,
   },

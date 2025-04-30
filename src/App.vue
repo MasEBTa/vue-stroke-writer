@@ -38,7 +38,7 @@
   </div>
 
   <div>
-    <Praktik
+    <StrokeWritter
       :strokesData="strokes"
       :defaultColor="'#ccc'"
       :successColor="'#000'"
@@ -60,7 +60,7 @@
 import { ref } from "vue";
 import StrokeAnimate from "./components/StrokeAnimate.vue";
 import StrokeSvg from "./components/StrokeSvg.vue";
-import Praktik from "./components/practice/praktik.vue";
+import StrokeWritter from "./components/practice/StrokeWritter.vue";
 
 const d = [
   "M18.85,6.41c.15,.21,.38,.33,.62,.33,.14,0,.29-.04,.42-.13,.34-.23,.43-.7,.2-1.04l-1.08-1.59c-.23-.34-.7-.43-1.04-.2-.34,.23-.43,.7-.2,1.04l1.08,1.59Z",

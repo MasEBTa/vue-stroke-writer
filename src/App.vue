@@ -1,6 +1,6 @@
 <template>
   <button @click="startAnimationHandler">Start Animation 1</button>
-  <StrokeWriter
+  <StrokeAnimate
     ref="writer"
     :viewBox="32"
     :strokesData="d"
@@ -13,7 +13,7 @@
   />
   <div>
     <button @click="startAnimationHandler1">Start Animation 1</button>
-    <StrokeWriter
+    <StrokeAnimate
       ref="writer1"
       :strokesData="strokeData"
       :size="'10rem'"
@@ -23,7 +23,7 @@
     />
 
     <button @click="startAnimationHandler2">Start Animation 2</button>
-    <StrokeWriter
+    <StrokeAnimate
       ref="writer2"
       :strokesData="strokeData"
       :size="'4rem'"
@@ -58,7 +58,7 @@
 
 <script setup>
 import { ref } from "vue";
-import StrokeWriter from "./components/StrokeWriter.vue";
+import StrokeAnimate from "./components/StrokeAnimate.vue";
 import StrokeSvg from "./components/StrokeSvg.vue";
 import Praktik from "./components/practice/praktik.vue";
 
